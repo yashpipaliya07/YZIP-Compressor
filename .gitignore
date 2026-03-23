@@ -1,0 +1,5 @@
+*.exe
+*.yzip
+__pycache__/
+file*.txt
+decoded_*.txt
