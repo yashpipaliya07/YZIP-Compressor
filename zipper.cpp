@@ -11,23 +11,23 @@ struct Node{
     }
 };
 
-// 🔥 Perfect Min-Heap comparator
+
 struct cmp{
     bool operator()(Node* a,Node* b){
         if(a->f == b->f) return a->ch > b->ch;
         return a->f > b->f;
-    }
+    } 
 };
 
-string xoren(string s,string key){
+string xoren(string s,string key){       // tc = O(N) , sc = o(N)
     for(int i=0;i<s.size();i++){
         s[i]^=key[i%key.size()];
     }
     return s;
 }
 
-// 🔥 Smart RLE: Only compresses 3+ repeating chars to avoid bloat
-string rle(string s){
+
+string rle(string s){                    // tc = O(N) , sc = o(N)
     string res="";
     for(int i=0;i<s.size();i++){
         int cnt=1;
@@ -43,8 +43,8 @@ string rle(string s){
     return res;
 }
 
-// 🔥 Smart RLE Decoder
-string unrle(string s){
+
+string unrle(string s){                    // tc = O(N+M) , sc = o(M)
     string res="";
     for(int i=0;i<s.size();i++){
         if(s[i] == '~'){
@@ -67,7 +67,7 @@ string unrle(string s){
     return res;
 }
 
-Node* build(unordered_map<char,int> &freq){
+Node* build(unordered_map<char,int> &freq){     // tc = O(U log U) , sc = O(U)
     priority_queue<Node*,vector<Node*>,cmp> pq;
     for(auto &p:freq){
         pq.push(new Node(p.first,p.second));
@@ -82,7 +82,7 @@ Node* build(unordered_map<char,int> &freq){
     return pq.top();
 }
 
-void gen(Node* root,string s,unordered_map<char,string> &mp){
+void gen(Node* root,string s,unordered_map<char,string> &mp){      // tc = O(U X L) , sc = O(U X L)
     if(!root) return;
     if(!root->l && !root->r){
         mp[root->ch]=s;
@@ -91,7 +91,7 @@ void gen(Node* root,string s,unordered_map<char,string> &mp){
     gen(root->r,s+"1",mp);
 }
 
-vector<unsigned char> pack(string &bits){
+vector<unsigned char> pack(string &bits){           // tc = O(B) , sc = O(B)
     vector<unsigned char> v;
     for(int i=0;i<bits.size();i+=8){
         unsigned char b=0;
@@ -105,17 +105,19 @@ vector<unsigned char> pack(string &bits){
     return v;
 }
 
-string unpack(vector<unsigned char> &v,int cnt){
-    string s="";
+string unpack(vector<unsigned char> &v,int cnt){           // tc = O(B) , sc = O(B)
+    string s=""; 
     for(auto b:v){
         for(int i=7;i>=0;i--){
-            s += ((b>>i)&1)?'1':'0';
+            if((b >> i) & 1)
+                s += '1';
+            else
+                s += '0';
         }
     }
     return s.substr(0,cnt);
 }
 
-// 🔥 UNIQUE FILE GENERATOR
 string getUniqueName(string base){
     int i = 1;
     while(true){
@@ -126,7 +128,6 @@ string getUniqueName(string base){
     }
 }
 
-// 🔥 FINAL NAMING LOGIC
 string getArchiveName(vector<string> &files){
     if(files.size() > 1){
         return getUniqueName("archived_bundle");
@@ -143,7 +144,7 @@ string getArchiveName(vector<string> &files){
     return "archived_" + base + ".yzip";
 }
 
-void compress(vector<string> files,string outFile,string key){
+void compress(vector<string> files,string outFile,string key){           // tc = O(N log U) , sc = O(N)
     ofstream out(outFile,ios::binary);
     int n=files.size();
     out.write((char*)&n,sizeof(n));
@@ -158,10 +159,8 @@ void compress(vector<string> files,string outFile,string key){
         string text((istreambuf_iterator<char>(in)),{});
         in.close();
 
-        // 1. Squash repeating characters first
         text = rle(text);
 
-        // 2. Build Huffman frequencies
         unordered_map<char,int> freq;
         for(char c:text) freq[c]++;
 
@@ -175,12 +174,11 @@ void compress(vector<string> files,string outFile,string key){
 
         vector<unsigned char> bytes=pack(bits);
 
-        // 3. ENCRYPT the final compressed bytes before saving
         string byteStr(bytes.begin(), bytes.end());
         byteStr = xoren(byteStr, key);
         bytes.assign(byteStr.begin(), byteStr.end());
 
-        // --- WRITING METADATA ---
+        // writing metadata
         int nameLen=file.size();
         out.write((char*)&nameLen,sizeof(nameLen));
         out.write(file.c_str(),nameLen);
@@ -201,7 +199,6 @@ void compress(vector<string> files,string outFile,string key){
         int cs=bytes.size();
         out.write((char*)&cs,sizeof(cs));
         
-        // --- WRITING PAYLOAD ---
         out.write((char*)bytes.data(),bytes.size());
     }
 
@@ -209,7 +206,7 @@ void compress(vector<string> files,string outFile,string key){
     cout<<"Saved as "<<outFile<<"\n";
 }
 
-void decompress(string inFile,string key){
+void decompress(string inFile,string key){             // tc = O(B X L) , sc = O(N)
     ifstream in(inFile,ios::binary);
     if(!in){
         cout<<"Archive not found\n";
@@ -251,17 +248,17 @@ void decompress(string inFile,string key){
         vector<unsigned char> bytes(cs);
         in.read((char*)bytes.data(),cs);
 
-        // 1. DECRYPT the raw payload first
+
         string byteStr(bytes.begin(), bytes.end());
         byteStr = xoren(byteStr, key);
         bytes.assign(byteStr.begin(), byteStr.end());
 
-        // 2. Unpack bytes back to bits
+
         string bits=unpack(bytes,bc);
 
-        // 3. Traverse Huffman tree to decode back to RLE text
+
         string cur="",dec="";
-        for(char b:bits){
+        for(char b:bits){          //match code 
             cur+=b;
             if(rev.count(cur)){
                 dec+=rev[cur];
@@ -269,7 +266,7 @@ void decompress(string inFile,string key){
             }
         }
 
-        // 4. Decode the RLE back to original text
+
         dec=unrle(dec);
 
         string newName="decoded_"+name;
@@ -281,10 +278,12 @@ void decompress(string inFile,string key){
         cout<<"Extracted "<<newName<<"\n";
     }
 
-    in.close();
+    in.close();  
 }
 
-int main(int argc,char* argv[]){
+int main(int argc,char* argv[]){    // OVERALL 
+                                    //   Compression: TC = O(F × N) , SC = O(N)
+                                    //  Decompression: TC = O(F × N) , SC = O(N)
     if (argc < 4) {
         cout << "Usage:\n";
         cout << "Compress: ./zipper 1 <num_files> <file1> ... <key>\n";
